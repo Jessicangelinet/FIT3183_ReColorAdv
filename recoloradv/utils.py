@@ -49,6 +49,7 @@ def get_attack_from_name(
     Builds an attack from a name like "recoloradv" or "stadv+delta" or
     "recoloradv+stadv+delta".
     """
+    print("testestets===========teste\n====================")
 
     threats = []
     norm_weights = []
@@ -117,5 +118,9 @@ def get_attack_from_name(
             'optimizer_kwargs': {'lr': 0.001},
             'signed': False,
             'verbose': verbose,
+
         }},
+        
     )
+# use CW attack
+    print("testestets===========teste\n====================")
