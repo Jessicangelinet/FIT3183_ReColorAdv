@@ -572,10 +572,10 @@ class CarliniWagner(AdversarialAttack):
                                    successful_mask.data)
         scale = utils.fold_mask(downweights, upweights,
                                 successful_mask.data)
-         # Logging for debugging
+
+        # Logging for debugging
         print(f"tweak_lambdas: scale_lo={scale_lo.mean().item()}, scale_hi={scale_hi.mean().item()}, scale={scale.mean().item()}")
         print(f"tweak_lambdas: successful_mask={successful_mask}")
-        print(f"tweak_lambdas: successful_mask={successful_mask.data}")
 
         
         return (Variable(scale_lo), Variable(scale_hi), Variable(scale))
