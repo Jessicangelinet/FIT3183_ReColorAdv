@@ -518,7 +518,7 @@ class CarliniWagner(AdversarialAttack):
         else:
             good_confidence = torch.gt(max_vals.view(-1, 1),
                                        target_vals + confidence)
-            one_hot_indices = ((1 -max_eq_targets.data).view(-1, 1) *
+            one_hot_indices = ((~max_eq_targets.data).view(-1, 1) *
                                good_confidence.data)
 
         return one_hot_indices.squeeze()
