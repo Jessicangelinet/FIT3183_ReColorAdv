@@ -702,6 +702,15 @@ class CarliniWagner(AdversarialAttack):
 
             successful_mask = successful_attack_idxs * successful_dist_idxs
 
+
+            
+            # Logging for debugging
+            print(f"successful_attack_idxs: {successful_attack_idxs}")
+            print(f"batch_dists: {batch_dists}")
+            print(f"successful_dist_idxs: {successful_dist_idxs}")
+            print(f"successful_mask: {successful_mask}")
+
+
             # And then generate a new 'best distance' and 'best perturbation'
 
             best_results['best_dist'] = utils.fold_mask(batch_dists,
