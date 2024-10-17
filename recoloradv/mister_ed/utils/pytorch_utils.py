@@ -393,7 +393,8 @@ def fold_mask(x, y, mask):
     make_broadcastable = lambda m: m.view(-1, *tuple([1] * (x.dim() - 1)))
 
     broadcast_mask = make_broadcastable(mask)
-    broadcast_not_mask = make_broadcastable(1 - safe_tensor(mask))
+    # 🌸 FIT3183 changes
+    broadcast_not_mask = make_broadcastable(torch.logical_not(mask))
     if is_var:
         broadcast_not_mask = Variable(broadcast_not_mask)
 

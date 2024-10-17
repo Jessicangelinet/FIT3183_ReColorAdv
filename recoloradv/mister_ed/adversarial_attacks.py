@@ -518,6 +518,7 @@ class CarliniWagner(AdversarialAttack):
         else:
             good_confidence = torch.gt(max_vals.view(-1, 1),
                                        target_vals + confidence)
+            # 🌸 FIT3183 changes
             one_hot_indices = (torch.logical_not(max_eq_targets).view(-1, 1) * good_confidence)
 
 
