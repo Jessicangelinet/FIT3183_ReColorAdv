@@ -717,6 +717,11 @@ class CarliniWagner(AdversarialAttack):
                                             Variable(successful_mask))
 
             var_scale_lo, var_scale_hi, var_scale = new_scales
+            
+            # 🌸 FIT3183 changes DEBUG
+            if verbose:
+                print(f"Updated lambdas: lo={var_scale_lo.mean().item()}, hi={var_scale_hi.mean().item()}, scale={var_scale.mean().item()}")
+
 
         # End binary search loop
         if verbose:
