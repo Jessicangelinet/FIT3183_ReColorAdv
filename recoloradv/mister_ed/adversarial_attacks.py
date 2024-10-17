@@ -388,6 +388,16 @@ class PGD(AdversarialAttack):
         perturbation.zero_grad()
         self.loss_fxn.cleanup_attack_batch()
         perturbation.attach_originals(examples)
+
+         # Count successful attacks
+        adversarial_examples = perturbation(var_examples).data
+        adversarial_predictions = self.classifier_net(adversarial_examples).argmax(dim=1)
+        successful_attacks = (adversarial_predictions != labels).sum().item()
+        total_examples = num_examples
+
+        if verbose:
+            print(f"Number of successful attacks: {successful_attacks}/{total_examples}")
+
         return perturbation
 
 
@@ -562,6 +572,10 @@ class CarliniWagner(AdversarialAttack):
                                    successful_mask.data)
         scale = utils.fold_mask(downweights, upweights,
                                 successful_mask.data)
+         # Logging for debugging
+        print(f"tweak_lambdas: scale_lo={scale_lo.mean().item()}, scale_hi={scale_hi.mean().item()}, scale={scale.mean().item()}")
+
+        
         return (Variable(scale_lo), Variable(scale_hi), Variable(scale))
 
 
