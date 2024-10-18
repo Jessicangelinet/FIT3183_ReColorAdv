@@ -10,9 +10,9 @@ from torchvision.datasets import ImageNet
 from torchvision import transforms
 
 # mister_ed
-from recoloradv.mister_ed import loss_functions as lf
-from recoloradv.mister_ed import adversarial_training as advtrain
-from recoloradv.mister_ed import adversarial_perturbations as ap 
+from ..mister_ed import loss_functions as lf
+from ..mister_ed import adversarial_training as advtrain
+from ..mister_ed import adversarial_perturbations as ap 
 from recoloradv.mister_ed import adversarial_attacks as aa
 from recoloradv.mister_ed import spatial_transformers as st
 from recoloradv.mister_ed.utils import pytorch_utils as utils
