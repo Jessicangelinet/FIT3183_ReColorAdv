@@ -492,6 +492,12 @@ class CarliniWagner(AdversarialAttack):
             loss = loss.sum()
         loss.backward()
 
+        # 🌸FIT3183 CHANGE
+        # Gradient clipping
+        torch.nn.utils.clip_grad_norm_(perturbation.parameters(), max_norm=1.0)
+
+
+
         optimizer.step()
         # return a loss 'average' to determine if we need to stop early
         return loss.item()
