@@ -400,7 +400,18 @@ class PGD(AdversarialAttack):
 
         return perturbation
 
+    def evaluate(self, examples, labels, step_size=1.0/255.0,
+                 num_iterations=20, random_init=False, signed=True,
+                 optimizer=None, optimizer_kwargs=None,
+                 loss_convergence=0.999, verbose=True,
+                 keep_best=True):
+        perturbation = self.attack(examples, labels, step_size, num_iterations,
+                                   random_init, signed, optimizer, optimizer_kwargs,
+                                   loss_convergence, verbose, keep_best)
 
+        # Use the parent class's print_eval_str method to check accuracy
+        print("PGD Evaluation:")
+        self.print_eval_str(examples, perturbation.data, labels)
 
 
 ##############################################################################
