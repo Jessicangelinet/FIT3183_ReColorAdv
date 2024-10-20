@@ -389,6 +389,7 @@ class PGD(AdversarialAttack):
         self.loss_fxn.cleanup_attack_batch()
         perturbation.attach_originals(examples)
 
+        # 🌸FIT3183 CHANGES ==
          # Count successful attacks
         adversarial_examples = perturbation(var_examples).data
         adversarial_predictions = self.classifier_net(adversarial_examples).argmax(dim=1)
@@ -397,6 +398,7 @@ class PGD(AdversarialAttack):
 
         if verbose:
             print(f"Number of successful attacks: {successful_attacks}/{total_examples}")
+        # ===
 
         return perturbation
 
@@ -411,7 +413,7 @@ class PGD(AdversarialAttack):
 
         # Use the parent class's print_eval_str method to check accuracy
         print("PGD Evaluation:")
-        self.print_eval_str(examples, perturbation.data, labels)
+        self.print_eval_str(examples, perturbation, labels)
 
 
 ##############################################################################
@@ -547,7 +549,7 @@ class CarliniWagner(AdversarialAttack):
                                        target_vals + confidence)
             # 🌸 FIT3183 changes
             one_hot_indices = (torch.logical_not(max_eq_targets).view(-1, 1) * good_confidence)
-
+#             one_hot_indices = ((1-(max_eq_targets).view(-1, 1) * good_confidence)
 
         return one_hot_indices.squeeze()
         # return [idx for idx, el in enumerate(one_hot_indices) if el[0] == 1]

@@ -213,6 +213,7 @@ class CarliniWagner(AdversarialAttack):
         self.loss_classes = {'distance_fxn': distance_fxn,
                              'carlini_loss': carlini_loss}
 
+        self.iteration = 0 #🌸 momentum
 
 
     def _construct_loss_fxn(self, initial_lambda, confidence):
@@ -239,7 +240,8 @@ class CarliniWagner(AdversarialAttack):
 
 
     def _optimize_step(self, optimizer, perturbation, var_examples,
-                       var_targets, var_scale, loss_fxn, targeted=False):
+                       var_targets, var_scale, loss_fxn, targeted=False,
+                       momentum=0.9, grad_accum_steps=5):
         """ Does one step of optimization """
         assert not targeted
         optimizer.zero_grad()
@@ -253,9 +255,21 @@ class CarliniWagner(AdversarialAttack):
         # Gradient clipping
         torch.nn.utils.clip_grad_norm_(perturbation.parameters(), max_norm=1.0)
 
+        # Gradient accumulation
+        if hasattr(self, 'grad_accum'):
+            self.grad_accum = momentum * self.grad_accum + perturbation.grad
+        else:
+            self.grad_accum = perturbation.grad
 
+        if self.iteration % grad_accum_steps == 0:
+            for param in perturbation.parameters():
+                param.grad = self.grad_accum
+            optimizer.step()
+            self.grad_accum = None
 
-        optimizer.step()
+        self.iteration += 1
+
+        
         # return a loss 'average' to determine if we need to stop early
         return loss.item()
 
@@ -293,7 +307,7 @@ class CarliniWagner(AdversarialAttack):
                                        target_vals + confidence)
             # 🌸 FIT3183 changes
             one_hot_indices = (torch.logical_not(max_eq_targets).view(-1, 1) * good_confidence)
-
+            # one_hot_indices = ((1 - max_eq_targets).view(-1, 1) * good_confidence)
 
         return one_hot_indices.squeeze()
         # return [idx for idx, el in enumerate(one_hot_indices) if el[0] == 1]
@@ -346,7 +360,8 @@ class CarliniWagner(AdversarialAttack):
 
     def attack(self, examples, labels, targets=None, initial_lambda=1.0,
                num_bin_search_steps=10, num_optim_steps=1000,
-               confidence=0.0, verbose=True):
+               confidence=0.0, verbose=True,
+               momentum=0.07, grad_accum_steps=1):
         """ Performs Carlini Wagner attack on provided examples to make them
             not get classified as the labels.
         ARGS:
@@ -431,7 +446,10 @@ class CarliniWagner(AdversarialAttack):
 
                 loss_sum = self._optimize_step(optimizer, perturbation,
                                                var_examples, var_labels,
-                                               var_scale, loss_fxn)
+                                               var_scale, loss_fxn,
+                                            #    🌸 FIT3183 CHANGES
+                                               momentum=momentum, 
+                                               grad_accum_steps=grad_accum_steps)
 
                 if loss_sum + 1e-10 > prev_loss * 0.99999 and optim_step >= 100:
                     if verbose:
@@ -513,22 +531,41 @@ class CarliniWagner(AdversarialAttack):
 
 
     def evaluate(self, examples, labels):
+        '''
+        🌸 FIT3183 CHANGES
+        '''
         perturbation = self.attack(examples, labels)
-        perturbation_revised = self.attack(examples, labels, momentum=0.9, grad_accum_steps=5)
+        perturbation_modified = self.attack(examples, labels, momentum=0.09, grad_accum_steps=2)
 
-        l2_norm = torch.norm(perturbation.data - examples)
-        l_inf_norm = torch.max(torch.abs(perturbation.data - examples))
+        l2_norm = torch.norm(perturbation(examples) - examples)
+        l_inf_norm = torch.max(torch.abs(perturbation(examples) - examples))
 
-        l2_norm_revised = torch.norm(perturbation_revised.data - examples)
-        l_inf_norm_revised = torch.max(torch.abs(perturbation_revised.data - examples))
+        l2_norm_modified = torch.norm(perturbation_modified(examples) - examples)
+        l_inf_norm_modified = torch.max(torch.abs(perturbation_modified(examples) - examples))
 
         print(f"Original Carlini-Wagner: L2 Norm = {l2_norm}, L∞ Norm = {l_inf_norm}")
-        print(f"Revised Carlini-Wagner: L2 Norm = {l2_norm_revised}, L∞ Norm = {l_inf_norm_revised}")
-        print(f"Absolute Differences: L2 Norm = {abs(l2_norm - l2_norm_revised)}, L∞ Norm = {abs(l_inf_norm - l_inf_norm_revised)}")
+        print(f"Revised Carlini-Wagner: L2 Norm = {l2_norm_modified}, L∞ Norm = {l_inf_norm_modified}")
+        print(f"Absolute Differences: L2 Norm = {abs(l2_norm - l2_norm_modified)}, L∞ Norm = {abs(l_inf_norm - l_inf_norm_modified)}")
 
-        # Use the parent class's print_eval_str method to check accuracy
+        # Use the parent/wrapper class's print_eval_str method to check accuracy        
         print("Original Carlini-Wagner Evaluation:")
-        self.print_eval_str(examples, perturbation.data, labels)
-
-        print("Revised Carlini-Wagner Evaluation:")
-        self.print_eval_str(examples, perturbation_revised.data, labels)
+        self.print_eval_str(examples, perturbation(examples), labels)
+        # Evaluate the performance
+        original_accuracy, adversarial_accuracy = self.eval(examples, perturbation(examples), labels)
+        print(f"Original Accuracy: {original_accuracy}%")
+        print(f"Adversarial Accuracy: {adversarial_accuracy}%")
+        # Collect and display successful adversarial examples
+        successful_advs, successful_origs = perturbation.collect_successful(self.classifier_net, self.normalizer)
+        successful_diffs = ((successful_advs - successful_origs) * 3 + 0.5).clamp(0, 1)
+        img_utils.show_images([successful_origs, successful_advs, successful_diffs])
+        
+        print("\nRevised Carlini-Wagner Evaluation:")
+        self.print_eval_str(examples, perturbation_modified(examples), labels)
+        # Evaluate the performance
+        original_accuracy, adversarial_accuracy = self.eval(examples, perturbation_modified(examples), labels)
+        print(f"Original Accuracy: {original_accuracy}%")
+        print(f"Adversarial Accuracy: {adversarial_accuracy}%")
+        # Collect and display successful adversarial examples
+        successful_advs, successful_origs = perturbation_modified.collect_successful(self.classifier_net, self.normalizer)
+        successful_diffs = ((successful_advs - successful_origs) * 3 + 0.5).clamp(0, 1)
+        img_utils.show_images([successful_origs, successful_advs, successful_diffs])
